@@ -1,0 +1,5 @@
+'use client';
+import {useAnimationFrame,useMotionValue,useScroll,useSpring,useTransform,motion} from 'motion/react';
+import {useRef} from 'react';
+const wrap=(min:number,max:number,v:number)=>{const r=max-min;return ((((v-min)%r)+r)%r)+min};
+export default function ScrollVelocity({text,velocity=22}:{text:string;velocity?:number}){const baseX=useMotionValue(0);const {scrollY}=useScroll();const factor=useSpring(useTransform(scrollY,[0,1000],[0,4],{clamp:false}),{damping:55,stiffness:250});const copy=useRef<HTMLSpanElement>(null);useAnimationFrame((_,delta)=>{const width=copy.current?.offsetWidth||0;if(!width)return;const move=velocity*(delta/1000)*(1+Math.abs(factor.get()));baseX.set(baseX.get()+move)});const x=useTransform(baseX,v=>{const w=copy.current?.offsetWidth||1;return `${wrap(-w,0,v)}px`});return <div className="np-velocity" aria-hidden="true"><motion.div className="np-velocity-track" style={{x}}>{Array.from({length:8},(_,i)=><span ref={i===0?copy:undefined} key={i}>{text}&nbsp;&nbsp;◆&nbsp;&nbsp;</span>)}</motion.div></div>}

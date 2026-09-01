@@ -1,0 +1,514 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  name         String
+  passwordHash String
+  phone        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  memberships  BusinessMember[]
+  auditLogs    AuditLog[]
+  sessions     Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("sessions")
+}
+
+model Business {
+  id                  String               @id @default(cuid())
+  name                String
+  legalName           String?
+  gstin               String?              @unique
+  pan                 String?
+  addressLine1        String?
+  addressLine2        String?
+  city                String?
+  state               String?
+  pincode             String?
+  country             String               @default("India")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  members             BusinessMember[]
+  requests            ProcurementRequest[]
+  negotiations        Negotiation[]
+  purchaseOrders      PurchaseOrder[]
+  documents           Document[]
+  shipments           Shipment[]
+  riskEvents          RiskEvent[]
+  auditLogs           AuditLog[]
+  providerCredentials ProviderCredential[]
+
+  @@map("businesses")
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  userId     String
+  businessId String
+  role       String   @default("VIEWER")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@map("business_members")
+}
+
+model ProviderCredential {
+  id             String    @id @default(cuid())
+  businessId     String
+  providerType   String
+  apiKeyHash     String?
+  encryptedToken String?
+  keyId          String?
+  endpointUrl    String?
+  isActive       Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, providerType])
+  @@map("provider_credentials")
+}
+
+model ProcurementRequest {
+  id                 String            @id @default(cuid())
+  businessId         String
+  title              String
+  description        String?
+  category           String?
+  targetQuantity     Int
+  targetUnitPrice    Float?
+  maxUnitPrice       Float?
+  deliveryLocation   String
+  deadline           DateTime
+  deliveryDeadline   DateTime?
+  allowPartial       Boolean           @default(false)
+  status             String            @default("DRAFT")
+  whyExplanation     String?
+  structuredCriteria String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  business           Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items              ProcurementItem[]
+  offers             SupplierOffer[]
+  negotiations       Negotiation[]
+  purchaseOrders     PurchaseOrder[]
+
+  @@map("procurement_requests")
+}
+
+model ProcurementItem {
+  id             String             @id @default(cuid())
+  requestId      String
+  itemName       String
+  specifications String?
+  quantity       Int
+  unitOfMeasure  String             @default("units")
+  targetPrice    Float?
+  maxPrice       Float?
+  request        ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("procurement_items")
+}
+
+model Supplier {
+  id                  String          @id @default(cuid())
+  name                String
+  supplierType        String          @default("direct_supplier")
+  sourceId            String?
+  sourceName          String?
+  rating              Float?
+  reviewCount         Int?
+  city                String?
+  state               String?
+  country             String          @default("India")
+  address             String?
+  officialWebsiteUrl  String?
+  websiteConfidence   Float?          @default(0)
+  isWebsiteVerified   Boolean         @default(false)
+  phone               String?
+  email               String?
+  emailVerification   String          @default("unverified")
+  emailSource         String?
+  productMatchScore   Float?          @default(0)
+  bulkCapable         Boolean         @default(false)
+  rankingScore        Float?          @default(0)
+  productDescription  String?
+  observedPrice       Float?
+  reliabilityScore    Float           @default(90.0)
+  onTimeDeliveryRate  Float           @default(95.0)
+  averageResponseMins Int             @default(30)
+  averageSavingsPct   Float           @default(5.0)
+  hasMessagingChannel Boolean         @default(true)
+  metadataJson        String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  offers              SupplierOffer[]
+  negotiations        Negotiation[]
+  purchaseOrders      PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model SupplierOffer {
+  id               String             @id @default(cuid())
+  requestId        String
+  supplierId       String
+  negotiationId    String?
+  roundNumber      Int                @default(1)
+  unitPrice        Float
+  quantity         Int
+  moq              Int?
+  freight          String             @default("included")
+  freightCost      Float?
+  taxRate          Float              @default(18.0)
+  totalAmount      Float
+  deliveryDays     Int                @default(5)
+  paymentTerms     String?
+  warrantyTerms    String?
+  source           String             @default("MANUAL")
+  sourceProvenance String?
+  verifiedAt       DateTime           @default(now())
+  isBuyerApproved  Boolean            @default(false)
+  isBestOffer      Boolean            @default(false)
+  savingsVsInitial Float?
+  request          ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  supplier         Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  negotiation      Negotiation?       @relation(fields: [negotiationId], references: [id], onDelete: SetNull)
+
+  @@map("supplier_offers")
+}
+
+model Negotiation {
+  id                String               @id @default(cuid())
+  businessId        String
+  supplierId        String
+  requestId         String
+  sessionCode       String?              @unique
+  rfqReference      String?              @unique
+  status            String               @default("draft")
+  maxPrice          Float
+  targetPrice       Float
+  quantity          Int
+  maxRounds         Int                  @default(3)
+  currentRound      Int                  @default(1)
+  deliveryDeadline  DateTime?
+  freightRequired   Boolean              @default(true)
+  paymentTerms      String?
+  warrantyRequired  Boolean              @default(true)
+  channelResolved   String?
+  channelStatus     String               @default("AVAILABLE")
+  finalOfferPrice   Float?
+  savingsAmount     Float?
+  emailSubject      String?
+  emailThreadId     String?
+  lastMessageId     String?
+  inReplyToHeader   String?
+  referencesHeader  String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  business          Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  supplier          Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  request           ProcurementRequest   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  messages          NegotiationMessage[]
+  rounds            NegotiationRound[]
+  offers            SupplierOffer[]
+  offerVersions     OfferVersion[]
+  purchaseOrders    PurchaseOrder[]
+
+  @@map("negotiations")
+}
+
+model NegotiationMessage {
+  id            String      @id @default(cuid())
+  negotiationId String
+  senderType    String
+  senderName    String
+  senderEmail   String?
+  recipient     String?
+  subject       String?
+  content       String
+  extractedData String?
+  provenance    String?
+  messageId     String?
+  inReplyTo     String?
+  isVerified    Boolean     @default(true)
+  deliveryMode  String      @default("preview")
+  createdAt     DateTime    @default(now())
+  negotiation   Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@map("negotiation_messages")
+}
+
+model NegotiationRound {
+  id             String      @id @default(cuid())
+  negotiationId  String
+  roundNumber    Int
+  buyerProposal  String?
+  sellerCounter  String?
+  priceProposed  Float?
+  priceCountered Float?
+  termsNotes     String?
+  completedAt    DateTime?
+  createdAt      DateTime    @default(now())
+  negotiation    Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@map("negotiation_rounds")
+}
+
+model OfferVersion {
+  id            String      @id @default(cuid())
+  negotiationId String
+  versionNumber Int
+  unitPrice     Float
+  quantity      Int
+  subtotal      Float
+  taxAmount     Float
+  totalAmount   Float
+  freight       String      @default("included")
+  leadTimeDays  Int?
+  paymentTerms  String?
+  warranty      String?
+  rawEmailText  String?
+  extractedJson String?
+  status        String      @default("received")
+  createdAt     DateTime    @default(now())
+  negotiation   Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@map("offer_versions")
+}
+
+model PurchaseOrder {
+  id               String              @id @default(cuid())
+  businessId       String
+  supplierId       String
+  requestId        String?
+  negotiationId    String?
+  poNumber         String              @unique
+  rfqReference     String?
+  status           String              @default("DRAFT")
+  subtotal         Float
+  taxAmount        Float               @default(0.0)
+  freightAmount    Float               @default(0.0)
+  totalAmount      Float
+  total            Float
+  paymentTerms     String?
+  deliveryTerms    String?
+  deliveryAddress  String?
+  expectedDelivery DateTime?
+  approvedBy       String?
+  acceptedOfferId  String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  supplier         Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  request          ProcurementRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  negotiation      Negotiation?        @relation(fields: [negotiationId], references: [id], onDelete: SetNull)
+  items            PurchaseOrderItem[]
+  documents        Document[]
+  shipments        Shipment[]
+  payments         Payment[]
+
+  @@map("purchase_orders")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  poId              String
+  amount            Float
+  currency          String        @default("INR")
+  status            String        @default("AWAITING_PAYMENT")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  verifiedAt        DateTime?
+  webhookEventId    String?
+  receiptNumber     String?
+  milestoneTitle    String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  purchaseOrder     PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  itemName        String
+  specifications  String?
+  quantity        Int
+  unitPrice       Float
+  taxRate         Float         @default(18.0)
+  totalAmount     Float
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_items")
+}
+
+model Document {
+  id                   String         @id @default(cuid())
+  businessId           String
+  supplierId           String?
+  purchaseOrderId      String?
+  documentType         String
+  documentNumber       String?
+  extractedData        String?
+  reconciliationStatus String         @default("PENDING")
+  confidenceScore      Float?
+  fileUrl              String
+  fileName             String
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  business             Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchaseOrder        PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+
+  @@map("documents")
+}
+
+model Shipment {
+  id                          String          @id @default(cuid())
+  businessId                  String
+  purchaseOrderId             String
+  supplierId                  String?
+  status                      String          @default("AWAITING_SUPPLIER_ACCEPTANCE")
+  shippingMode                String          @default("supplier_managed") // supplier_managed | procura_managed
+  pickupAddressConfirmed      Boolean         @default(false)
+  pickupAddress               String?
+  pickupPincode               String?
+  deliveryAddressConfirmed    Boolean         @default(false)
+  deliveryAddress             String?
+  deliveryPincode             String?
+  packageDetailsConfirmed     Boolean         @default(false)
+  packageWeightKg             Float?
+  packageDimensions           String?
+  packageCount                Int?
+  shiprocketOrderId           String?
+  shiprocketShipmentId        String?
+  awbCode                     String?
+  courierName                 String?
+  trackingUrl                 String?
+  currentStatus               String?
+  lastScanLocation            String?
+  trackingNumber              String?
+  carrierName                 String?
+  currentLocation             String?
+  latitude                    Float?
+  longitude                   Float?
+  riskLevel                   String          @default("LOW")
+  estimatedDelay              Float?
+  lastUpdate                  DateTime        @default(now())
+  estimatedDeliveryAt         DateTime?
+  deliveredAt                 DateTime?
+  podUrl                      String?
+  supplierAcceptedAt          DateTime?
+  supplierAcceptanceRef       String?
+  supplierAcceptanceNotes     String?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+  business                    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchaseOrder               PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  events                      TrackingEvent[]
+  shipmentEvents              ShipmentEvent[]
+  riskEvents                  RiskEvent[]
+
+  @@map("shipments")
+}
+
+model ShipmentEvent {
+  id         String   @id @default(cuid())
+  shipmentId String
+  eventType  String
+  status     String
+  location   String?
+  occurredAt DateTime @default(now())
+  source     String   @default("shiprocket") // shiprocket | supplier | buyer
+  rawPayload String?
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@map("shipment_events")
+}
+
+model TrackingEvent {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  status      String
+  location    String
+  description String?
+  source      String   @default("CARRIER_GPS")
+  eventTime   DateTime @default(now())
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@map("tracking_events")
+}
+
+model RiskEvent {
+  id            String    @id @default(cuid())
+  businessId    String
+  shipmentId    String?
+  severity      String
+  category      String
+  description   String
+  impactDays    Float?
+  suggestedPlan String?
+  isResolved    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  shipment      Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+
+  @@map("risk_events")
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  businessId String
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model DiscoveryCache {
+  id           String   @id @default(cuid())
+  cacheKey     String   @unique
+  product      String
+  city         String
+  resultsJson  String
+  top5Json     String
+  marketJson   String
+  totalFound   Int
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@map("discovery_cache")
+}

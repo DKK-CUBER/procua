@@ -1,0 +1,2316 @@
+PROCURA — AI PROCUREMENT CALLER AGENT
+Product Requirements Document (PRD)
+
+Product: Procura
+Module: AI Voice Procurement & Negotiation Agent
+Version: 1.0
+Purpose: Enable Procura to autonomously contact only buyer-selected suppliers, conduct natural voice conversations, understand the supplier's language, negotiate within buyer-defined constraints, extract commercial offers, and return structured results to the buyer.
+
+1. Product Objective
+
+Procura's AI Caller Agent is responsible for contacting suppliers selected by the buyer and negotiating procurement terms on the buyer's behalf.
+
+The agent should behave like a professional procurement representative, rather than a robotic IVR.
+
+The system should:
+
+Call only suppliers explicitly selected by the buyer.
+Use the buyer's name during the conversation.
+Start the conversation in English or Hindi.
+Detect the supplier's spoken language automatically.
+Understand English, Hindi, Tamil, Telugu, Kannada, Malayalam and mixed-language speech where supported by the selected voice stack.
+Respond naturally in the supplier's language.
+Handle pauses, interruptions, hesitations and conversational turn-taking.
+Negotiate price and commercial terms.
+Never exceed the buyer's maximum authorized price.
+Never reveal the buyer's maximum budget.
+Never place or confirm a purchase.
+Extract structured offers from conversations.
+Track negotiation rounds.
+Store call transcripts and negotiation history.
+Present final offers to the buyer for approval.
+2. Core Product Principle
+
+Procura discovers suppliers. The buyer chooses who gets contacted. The AI negotiates only with those explicitly selected suppliers.
+
+The AI must not independently decide to call suppliers.
+
+Required flow
+BUYER
+  ↓
+Procurement Request
+  ↓
+Requirement Parser
+  ↓
+Supplier Discovery
+  ↓
+Top 5 Suppliers
+  ↓
+Buyer selects suppliers
+  ↓
+Explicit authorization
+  ↓
+AI Caller
+  ↓
+Selected Supplier(s)
+  ↓
+Negotiation
+  ↓
+Final Offers
+  ↓
+Buyer Review
+  ↓
+Buyer Approval
+3. Explicit Supplier Selection Rule
+
+This is a hard system rule.
+
+Example
+
+Procura discovers:
+
+1. ABC Furniture
+2. XYZ Seating
+3. ErgoTech India
+4. Chennai Office Solutions
+5. OfficePro
+
+Buyer selects:
+
+☑ ABC Furniture
+☑ XYZ Seating
+
+☐ ErgoTech India
+☐ Chennai Office Solutions
+☐ OfficePro
+
+Procura may call:
+
+ABC Furniture
+XYZ Seating
+
+Procura must NOT call:
+
+ErgoTech India
+Chennai Office Solutions
+OfficePro
+
+even if those suppliers appear to have better prices.
+
+4. Backend Authorization
+
+Supplier selection cannot rely solely on the frontend.
+
+When the buyer clicks:
+
+Start Negotiation
+
+the frontend sends:
+
+{
+  "procurement_id": "proc_123",
+  "supplier_ids": [
+    "sup_001",
+    "sup_004"
+  ]
+}
+
+Backend must verify:
+
+Supplier exists?
+        ↓
+Supplier belongs to this procurement?
+        ↓
+Supplier was discovered by Procura?
+        ↓
+Supplier was explicitly selected?
+        ↓
+Buyer authorized AI contact?
+        ↓
+Buyer authorized AI negotiation?
+        ↓
+Valid contact method?
+        ↓
+YES → Call
+NO  → Reject
+Backend must reject:
+Unselected supplier
+Unknown supplier
+Supplier from another procurement
+Missing authorization
+Invalid phone number
+Unauthorized bulk call request
+5. Buyer Authorization
+
+Before the first call, the buyer should be able to configure:
+
+AI CONTACT AUTHORIZATION
+
+☑ Allow AI to contact selected suppliers
+
+☑ Allow AI to negotiate price
+
+☑ Allow AI to negotiate delivery
+
+☑ Allow AI to negotiate shipping
+
+☑ Allow AI to negotiate payment terms
+
+☐ Allow AI to finalize purchase
+
+Finalize purchase should remain OFF.
+
+The AI can negotiate, but the buyer makes the final purchasing decision.
+
+6. Procurement Context
+
+Every call receives a structured procurement brief.
+
+Example:
+
+{
+  "procurement_id": "proc_123",
+
+  "buyer": {
+    "name": "Sadwik",
+    "company": "Example Technologies"
+  },
+
+  "product": {
+    "name": "Ergonomic Office Chair",
+    "quantity": 500,
+    "requirements": [
+      "Ergonomic",
+      "Office use",
+      "Adjustable lumbar support"
+    ]
+  },
+
+  "delivery": {
+    "location": "Chennai",
+    "deadline": "2026-09-20"
+  },
+
+  "budget": {
+    "currency": "INR",
+    "target_unit_price": 6500,
+    "maximum_unit_price": 8000
+  },
+
+  "negotiation": {
+    "maximum_rounds": 4
+  }
+}
+7. Information Available to the Caller
+
+The agent may access:
+
+Buyer information
+Buyer name
+Company name
+Procurement requirements
+Quantity
+Delivery location
+Delivery deadline
+Target price
+Maximum authorized price
+Required specifications
+Supplier information
+Supplier name
+Business type
+Location
+Products
+Contact number
+Website
+Public rating
+Public reviews
+Bulk capability
+Previously discovered information
+Market intelligence
+Online marketplace price ranges
+Indicative supplier pricing
+Previous negotiation results
+Publicly available market benchmarks
+8. Confidential Information
+
+The agent must never reveal:
+
+❌ Buyer's maximum budget
+❌ Internal target price
+❌ Internal ranking
+❌ Other suppliers' confidential offers
+❌ Internal negotiation strategy
+❌ Internal scoring
+❌ Private buyer information
+
+For example:
+
+Buyer maximum:
+
+₹8,000
+
+Supplier asks:
+
+"What's your maximum budget?"
+
+Agent:
+
+"I'd prefer to understand your best price for the full quantity first."
+
+9. Buyer Identity / Introduction
+
+The caller should use the buyer's name naturally.
+
+Example:
+
+"Hi, this is Sadwik. I'm looking to source 500 ergonomic office chairs for our office in Chennai."
+
+It should not unnecessarily introduce itself as:
+
+"I am an AI calling on behalf of Sadwik."
+
+The desired conversational experience is:
+
+Buyer identity/persona
+        ↓
+Natural procurement conversation
+
+However, the system must not falsely claim to be a human if directly asked whether it is an AI/automated system.
+
+If the supplier asks:
+
+"Are you an AI?"
+
+the agent should answer transparently according to the configured disclosure policy.
+
+10. Voice Infrastructure
+Recommended architecture
+                    PROCURA
+                       │
+                       ▼
+              Negotiation Controller
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+   Procurement Context       Negotiation Policy
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                Voice AI Runtime
+                       │
+                       ▼
+                 Twilio Voice
+                       │
+                       ▼
+                Supplier Phone
+11. Twilio Role
+
+Twilio is primarily the telephony layer.
+
+It handles:
+
+Outbound phone calls
+Call connection
+Audio streaming
+Call state
+Call events
+Phone-number infrastructure
+Voice routing
+
+Twilio should not be treated as the complete AI brain.
+
+12. Real-Time Voice Architecture
+
+For the human-like experience, use a real-time voice architecture rather than a slow:
+
+Speech
+ ↓
+STT
+ ↓
+LLM
+ ↓
+TTS
+ ↓
+Speech
+
+pipeline for every turn.
+
+Preferred:
+
+Supplier
+   ↓
+Twilio Voice
+   ↓
+Real-Time Voice Connection
+   ↓
+Voice AI
+   ↓
+Negotiation Engine
+   ↓
+Voice AI
+   ↓
+Twilio
+   ↓
+Supplier
+
+This allows:
+
+Streaming audio
+Natural pauses
+Interruptions
+Faster responses
+More natural turn-taking
+Context-aware responses
+13. Twilio Integration
+
+Recommended integration options:
+
+Option A — Twilio + ConversationRelay
+Supplier
+ ↓
+Twilio
+ ↓
+ConversationRelay
+ ↓
+Procura backend
+ ↓
+LLM / voice engine
+
+Useful when Procura wants more control over the conversational application.
+
+Option B — Twilio + Real-Time Voice Model
+Supplier
+ ↓
+Twilio
+ ↓
+Real-time voice model
+ ↓
+Negotiation tools
+ ↓
+Twilio
+ ↓
+Supplier
+
+This is preferred for a highly natural voice experience.
+
+14. Important Twilio Constraint
+
+Twilio Voice is not permanently free.
+
+A trial account can be used for development/testing, but it has restrictions such as verified-number limitations.
+
+Therefore:
+
+Hackathon
+Twilio trial
++
+Verified test number
++
+Real-time voice AI
+Production
+Paid Twilio account
++
+Production telephony setup
++
+Compliant calling configuration
+15. Multilingual Voice System
+
+This is one of Procura's core differentiators.
+
+The agent initially speaks in:
+
+English
+OR
+Hindi
+
+The supplier can respond in another language.
+
+Procura detects the supplier's language and adapts.
+
+16. Dynamic Language Adaptation
+
+Example:
+
+Agent starts in English
+
+"Hi, this is Sadwik. I'm looking to purchase 500 ergonomic office chairs."
+
+Supplier:
+
+"Sir, 500 chairs-ku price ₹7,600 varum."
+
+System detects:
+
+Tamil + English
+
+Internal interpretation:
+
+{
+  "language": "ta",
+  "mixed_language": true,
+  "intent": "supplier_offer",
+  "unit_price": 7600
+}
+
+Agent responds naturally in Tamil/Tanglish.
+
+17. Supported Language Strategy
+
+Initial priority:
+
+English
+Hindi
+Tamil
+Telugu
+Kannada
+Malayalam
+Bengali
+Marathi
+
+But language availability depends on the selected speech/voice provider.
+
+The system must not advertise a language as supported until it has been tested with the actual production voice pipeline.
+
+18. Code-Switching
+
+The system must support mixed-language conversations wherever the voice stack supports them.
+
+Examples:
+
+Hindi + English
+Tamil + English
+Telugu + English
+Kannada + English
+
+Supplier:
+
+"500 pieces ready undi, but delivery Chennai ki 7 days padutundi."
+
+Procura should understand:
+
+Quantity: 500
+Availability: Yes
+Delivery: 7 days
+Location: Chennai
+
+rather than treating every language switch as a new conversation.
+
+19. Language Detection
+
+Each conversational turn should produce:
+
+{
+  "detected_language": "ta",
+  "confidence": 0.96,
+  "mixed_language": true
+}
+
+The system should maintain:
+
+current_language
+language_history
+language_confidence
+
+If the supplier switches language:
+
+Tamil
+ ↓
+English
+ ↓
+Hindi
+
+the agent can adapt dynamically.
+
+20. Natural Conversation Requirements
+
+The voice agent should sound conversational rather than robotic.
+
+It should support:
+
+Pauses
+
+"Hmm… okay."
+
+Hesitation
+
+"Right… let me check that."
+
+Acknowledgements
+
+"Yeah, understood."
+
+Clarification
+
+"Sorry, just to confirm—you said ₹7,200 per chair?"
+
+Interruption
+
+Supplier interrupts agent → agent stops speaking and listens.
+
+Follow-up questions
+
+Supplier provides price but doesn't mention delivery → agent asks about delivery.
+
+21. Negotiation State Machine
+START
+  ↓
+INTRODUCTION
+  ↓
+REQUEST_QUOTE
+  ↓
+RECEIVE_OFFER
+  ↓
+EXTRACT_OFFER
+  ↓
+EVALUATE_OFFER
+  ↓
+COUNTEROFFER
+  ↓
+RECEIVE_RESPONSE
+  ↓
+EVALUATE
+  ↓
+FINAL_OFFER
+  ↓
+END
+
+Possible alternative:
+
+SUPPLIER_UNAVAILABLE
+WRONG_CONTACT
+CALL_FAILED
+SUPPLIER_DECLINED
+NO_NEGOTIATION
+ESCALATE_TO_BUYER
+22. Negotiation Parameters
+
+The agent can negotiate:
+
+Price
+Unit price
+Total price
+Volume discount
+Bulk discount
+Quantity
+MOQ
+Bulk quantity
+Availability
+Delivery
+Delivery date
+Delivery duration
+Partial delivery
+Logistics
+Shipping
+Freight
+Delivery charges
+Commercial terms
+GST
+Warranty
+Payment terms
+Credit period
+Installation
+After-sales support
+23. Maximum Price Rule
+
+This is a hard constraint.
+
+Example:
+
+Target = ₹6,500
+Maximum = ₹8,000
+
+Supplier:
+
+"₹8,500 is the lowest we can do."
+
+Agent:
+
+₹8,500 > ₹8,000
+
+Therefore:
+
+"I wouldn't be able to proceed at that price. Is there any possibility of bringing it below ₹8,000?"
+
+The agent must never accept:
+
+₹8,001+
+24. No Budget Leakage
+
+Supplier:
+
+"What's your maximum budget?"
+
+Agent:
+
+"We're looking for a competitive price for the full 500-unit order. What is your best offer?"
+
+Never:
+
+"Our maximum is ₹8,000."
+
+25. Maximum Negotiation Rounds
+
+Default:
+
+4 rounds
+
+Example:
+
+Round 1
+Supplier: ₹7,600
+
+Round 2
+Procura: ₹7,000
+
+Round 3
+Supplier: ₹7,300
+
+Round 4
+Procura: final counter
+
+END
+
+The agent should not endlessly negotiate.
+
+26. Negotiation Intelligence
+
+The agent should consider:
+
+Buyer target price
+Buyer maximum price
+Quantity
+Supplier's initial price
+Market benchmark
+Supplier discount
+Delivery
+GST
+Shipping
+Warranty
+Payment terms
+Negotiation round
+
+Example:
+
+Market range: ₹6,800–₹7,400
+
+Supplier:
+₹7,900
+
+→ Counter aggressively
+
+Supplier:
+₹7,300
+
+→ Good offer
+
+Supplier:
+₹7,100 + ₹50,000 shipping
+
+→ Calculate landed cost
+
+Effective unit cost:
+₹7,200
+27. Offer Extraction
+
+The AI must convert conversational speech into structured data.
+
+Supplier:
+
+"For 500 pieces I can do ₹7,200 each, delivery within 10 days, GST extra."
+
+Extract:
+
+{
+  "quantity": 500,
+  "unit_price": 7200,
+  "currency": "INR",
+  "delivery_days": 10,
+  "gst": "extra",
+  "shipping": null,
+  "warranty": null,
+  "payment_terms": null
+}
+28. Negotiation State
+
+Example:
+
+{
+  "supplier_id": "sup_001",
+
+  "round": 2,
+
+  "initial_offer": {
+    "unit_price": 7600
+  },
+
+  "current_offer": {
+    "unit_price": 7200
+  },
+
+  "buyer": {
+    "target_price": 6500,
+    "maximum_price": 8000
+  },
+
+  "status": "negotiating"
+}
+29. Offer History
+
+Store every meaningful offer:
+
+[
+  {
+    "round": 1,
+    "speaker": "supplier",
+    "unit_price": 7600
+  },
+  {
+    "round": 2,
+    "speaker": "procura",
+    "unit_price": 6900
+  },
+  {
+    "round": 3,
+    "speaker": "supplier",
+    "unit_price": 7200
+  },
+  {
+    "round": 4,
+    "speaker": "procura",
+    "unit_price": 7000
+  }
+]
+30. Total Cost Calculation
+
+The agent should not compare unit price alone.
+
+Calculate:
+
+Total Cost =
+Product Cost
++ Shipping
++ Installation
++ Applicable Charges
++ Other Negotiated Costs
+
+For example:
+
+₹7,100 × 500
+= ₹35,50,000
+
+Shipping
+= ₹20,000
+
+Total
+= ₹35,70,000
+
+The dashboard should expose assumptions such as GST inclusion/exclusion.
+
+31. Call Script
+
+The agent should not follow a rigid script.
+
+Instead it should use conversational objectives.
+
+Opening
+
+"Hi, this is Sadwik. I'm looking to source 500 ergonomic office chairs for our office in Chennai. Is this something you can supply?"
+
+Supplier confirms
+
+"Great. What would be your best bulk price for the full quantity?"
+
+Supplier quotes
+
+"Okay, ₹7,600. And is that inclusive of GST and delivery?"
+
+Negotiation
+
+"Since we're looking at 500 units, is there some room to improve that price?"
+
+Closing
+
+"Okay, I'll record that as your best offer and we'll review it."
+
+32. No Purchase Commitment
+
+The agent must never say:
+
+❌ "We'll definitely buy from you."
+
+❌ "The order is confirmed."
+
+❌ "I'll place the order now."
+
+❌ "You have the deal."
+
+Instead:
+
+"I'll take this offer back to the buyer for review."
+
+33. Final Buyer Approval
+
+After negotiations:
+
+Supplier A
+₹7,100/unit
+500 units
+10-day delivery
+GST extra
+
+Supplier B
+₹7,250/unit
+500 units
+7-day delivery
+GST included
+
+Supplier C
+₹6,950/unit
+500 units
+14-day delivery
+GST extra
+
+Procura recommends:
+
+BEST VALUE
+Supplier B
+
+But the buyer makes the final decision.
+
+34. Buyer Dashboard
+
+During calls:
+
+┌─────────────────────────────────────────┐
+│ 🔴 LIVE NEGOTIATION                     │
+│                                         │
+│ ABC Furniture                           │
+│ Chennai                                 │
+│                                         │
+│ Language: 🇮🇳 Tamil                     │
+│ Round: 2 / 4                            │
+│                                         │
+│ Supplier Offer                          │
+│ ₹7,300 / unit                           │
+│                                         │
+│ AI Counter                              │
+│ ₹7,000 / unit                           │
+│                                         │
+│ Transcript                              │
+│ ─────────────────────────────────────── │
+│ Supplier: ...                           │
+│ Procura: ...                            │
+└─────────────────────────────────────────┘
+35. Negotiation Results
+
+After each call:
+
+ABC Furniture
+🟢 Negotiated
+
+₹7,600 → ₹7,100
+
+500 units
+10-day delivery
+GST extra
+
+Savings:
+₹2,50,000
+36. Call Status
+
+Each supplier should have:
+
+NOT_STARTED
+CALLING
+CONNECTED
+NEGOTIATING
+OFFER_RECEIVED
+NEGOTIATION_COMPLETE
+NO_ANSWER
+BUSY
+FAILED
+DECLINED
+CALLBACK_REQUESTED
+BUYER_REVIEW
+37. Contact Routing
+
+Supplier contact information comes from discovery.
+
+Priority:
+
+Phone available?
+       ↓ YES
+Voice call
+
+NO
+ ↓
+Email available?
+       ↓ YES
+Email RFQ
+
+NO
+ ↓
+Website/contact form
+
+Never fabricate contact information.
+
+38. Call Recording
+
+Recording should be configurable.
+
+record_calls: true / false
+
+Where recording is enabled, the system should account for applicable consent and legal requirements.
+
+For the hackathon:
+
+Recording
+↓
+Transcript
+↓
+Offer extraction
+↓
+Negotiation history
+39. AI Agent Tools
+
+The negotiation model should have controlled tools.
+
+get_procurement_requirements()
+
+Returns buyer requirements.
+
+get_supplier_profile()
+
+Returns supplier information.
+
+get_market_benchmark()
+
+Returns market intelligence.
+
+record_supplier_offer()
+
+Stores a supplier's offer.
+
+calculate_total_cost()
+
+Calculates commercial cost.
+
+calculate_savings()
+
+Calculates savings relative to initial/benchmark offer.
+
+submit_final_offer()
+
+Stores the final negotiated offer.
+
+end_call()
+
+Terminates negotiation.
+
+40. AI Hard Rules
+
+The system prompt should enforce:
+
+1. Call ONLY explicitly selected suppliers.
+
+2. Never initiate a call to an unselected supplier.
+
+3. Use the buyer's configured name naturally.
+
+4. Do not falsely claim to be human.
+
+5. If directly asked whether you are AI/automated,
+   follow the configured disclosure policy honestly.
+
+6. Never reveal the buyer's maximum budget.
+
+7. Never exceed the buyer's authorized maximum price.
+
+8. Never invent supplier information.
+
+9. Never invent buyer requirements.
+
+10. Never invent an offer.
+
+11. Never claim a purchase has been made.
+
+12. Never accept a binding contract.
+
+13. Never place an order without explicit buyer approval.
+
+14. Respect maximum negotiation rounds.
+
+15. Ask clarifying questions when commercial terms are ambiguous.
+
+16. Record every meaningful supplier offer.
+
+17. Adapt to the supplier's language where supported.
+
+18. Preserve negotiation context when language changes.
+
+19. End the call professionally.
+
+20. Return a structured negotiation result.
+41. Security Model
+
+Every call should be associated with:
+
+user_id
+procurement_id
+supplier_id
+authorization_id
+call_id
+
+Example:
+
+{
+  "user_id": "usr_123",
+  "procurement_id": "proc_123",
+  "supplier_id": "sup_001",
+  "authorization_id": "auth_456",
+  "call_id": "call_789"
+}
+
+This prevents accidental cross-procurement calls.
+
+42. API Design
+Start negotiation
+POST /api/negotiations/start
+
+Request:
+
+{
+  "procurement_id": "proc_123",
+  "supplier_ids": [
+    "sup_001",
+    "sup_004"
+  ]
+}
+
+Response:
+
+{
+  "negotiation_id": "neg_001",
+  "status": "started",
+  "suppliers": [
+    {
+      "supplier_id": "sup_001",
+      "status": "calling"
+    },
+    {
+      "supplier_id": "sup_004",
+      "status": "queued"
+    }
+  ]
+}
+43. Call Webhooks
+
+Twilio events should update:
+
+call.started
+call.ringing
+call.answered
+call.completed
+call.failed
+
+Example:
+
+POST /api/webhooks/twilio/voice
+44. Transcript API
+GET /api/negotiations/:id/transcript
+
+Returns:
+
+{
+  "supplier_id": "sup_001",
+  "language": "ta",
+  "transcript": [],
+  "offers": []
+}
+45. Negotiation Result API
+GET /api/negotiations/:id/result
+
+Returns:
+
+{
+  "supplier": "ABC Furniture",
+  "status": "completed",
+  "initial_price": 7600,
+  "final_price": 7100,
+  "quantity": 500,
+  "delivery_days": 10,
+  "gst": "extra",
+  "rounds": 3,
+  "estimated_savings": 250000
+}
+46. Database Model
+Procurement
+procurements
+Supplier
+suppliers
+Supplier Selection
+supplier_selections
+
+Fields:
+
+id
+procurement_id
+supplier_id
+selected_by
+selected_at
+authorization_status
+Negotiation
+negotiations
+Call
+calls
+Transcript
+call_transcripts
+Offers
+supplier_offers
+Negotiation Rounds
+negotiation_rounds
+47. Supplier Selection Database Rule
+
+The backend should maintain:
+
+supplier_selection.status
+
+Possible:
+
+selected
+deselected
+authorized
+contacted
+completed
+
+The caller can only execute if:
+
+selected = true
+AND
+authorized = true
+48. Multiple Suppliers
+
+If buyer selects:
+
+ABC
+XYZ
+ErgoTech
+
+Procura should create:
+
+Negotiation #1 → ABC
+Negotiation #2 → XYZ
+Negotiation #3 → ErgoTech
+
+Each supplier gets an independent:
+
+conversation
+transcript
+negotiation state
+offer history
+round counter
+result
+49. Recommended Calling Strategy
+
+For the hackathon:
+
+Selected suppliers
+        ↓
+Queue
+        ↓
+Call Supplier 1
+        ↓
+Finish
+        ↓
+Store result
+        ↓
+Call Supplier 2
+        ↓
+Finish
+        ↓
+Store result
+        ↓
+Call Supplier 3
+
+This is easier to debug and demonstrate than simultaneous calls.
+
+Production can support parallel calling where appropriate.
+
+50. Failure Handling
+No answer
+NO_ANSWER
+
+Do not repeatedly call indefinitely.
+
+Busy
+BUSY
+
+Allow buyer to retry.
+
+Supplier refuses negotiation
+DECLINED
+Wrong number
+INVALID_CONTACT
+Supplier asks for email
+EMAIL_FOLLOWUP_REQUIRED
+Voice recognition failure
+VOICE_UNCLEAR
+
+Ask the supplier to repeat.
+
+51. Human Escalation
+
+If the supplier asks something outside the agent's authorization:
+
+"Can you confirm the legal contract terms?"
+
+Agent:
+
+"I can collect the details, but the final agreement will need to be reviewed by the buyer."
+
+Then:
+
+ESCALATE_TO_BUYER
+
+52. Complete Caller Agent Implementation
+
+The entire AI Caller Agent should be implemented as one integrated system.
+
+There are no separate implementation phases. All core functionality is expected to work together in the final implementation.
+
+Complete End-to-End Flow
+BUYER
+  ↓
+Creates Procurement Request
+  ↓
+Requirement Parser
+  ↓
+Supplier Discovery
+  ↓
+Top 5 Suppliers
+  ↓
+Buyer Selects Suppliers
+  ↓
+Explicit AI Contact + Negotiation Authorization
+  ↓
+Negotiation Queue
+  ↓
+Validate Supplier Selection
+  ↓
+Retrieve Supplier Contact
+  ↓
+Create Call Session
+  ↓
+Twilio Voice
+  ↓
+Real-Time Voice AI
+  ↓
+Natural Conversation
+  ↓
+Language Detection
+  ↓
+Understand Supplier Response
+  ↓
+Negotiation Engine
+  ↓
+Evaluate Offer
+  ↓
+Generate Counteroffer
+  ↓
+Natural Voice Response
+  ↓
+Continue Negotiation
+  ↓
+Maximum 4 Rounds
+  ↓
+Final Supplier Offer
+  ↓
+Structured Offer Extraction
+  ↓
+Calculate Savings / Total Cost
+  ↓
+Store Transcript + Negotiation History
+  ↓
+Update Supplier Status
+  ↓
+Buyer Dashboard
+  ↓
+Compare Offers
+  ↓
+Buyer Review
+  ↓
+FINAL BUYER APPROVAL
+52.1 Supplier Selection
+
+Only suppliers explicitly selected by the buyer can enter the negotiation queue.
+
+Example:
+
+TOP 5 SUPPLIERS
+
+☑ ABC Furniture
+☑ XYZ Seating
+☐ ErgoTech India
+☐ Chennai Office Solutions
+☐ OfficePro
+
+[ Start Negotiation ]
+
+Backend receives:
+
+{
+  "procurement_id": "proc_123",
+  "supplier_ids": [
+    "sup_001",
+    "sup_002"
+  ]
+}
+
+Backend verifies every supplier before creating a call.
+
+52.2 Authorization Validation
+
+Before initiating a call:
+
+Supplier belongs to procurement?
+        ↓
+Supplier explicitly selected?
+        ↓
+AI contact authorized?
+        ↓
+AI negotiation authorized?
+        ↓
+Valid contact information?
+        ↓
+YES
+        ↓
+CALL
+
+If any check fails:
+
+DO NOT CALL
+
+This validation must happen server-side.
+
+52.3 Negotiation Queue
+
+Selected suppliers enter a controlled queue.
+
+NEGOTIATION QUEUE
+
+1. ABC Furniture       READY
+2. XYZ Seating         QUEUED
+
+After ABC completes:
+
+1. ABC Furniture       COMPLETED
+2. XYZ Seating         CALLING
+
+Each supplier has an independent negotiation session.
+
+52.4 Twilio Voice Integration
+
+Twilio is responsible for telephony.
+
+The system must support:
+
+Outbound calling
+Call connection
+Audio streaming
+Call status
+Call termination
+Call event webhooks
+Real-time conversational audio
+
+Architecture:
+
+Procura Backend
+      ↓
+Negotiation Controller
+      ↓
+Real-Time Voice AI
+      ↓
+Twilio Voice
+      ↓
+Supplier Phone
+
+Twilio credentials must be stored securely as environment variables.
+
+TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN
+TWILIO_PHONE_NUMBER
+
+Never expose credentials to the frontend.
+
+52.5 Natural Voice Conversation
+
+The agent must behave conversationally rather than using a rigid IVR script.
+
+It should support:
+
+Natural pauses
+Interruptions
+Follow-up questions
+Clarifications
+Acknowledgements
+Context retention
+Streaming responses
+Natural conversational timing
+
+Example:
+
+"Yeah… okay, I understand."
+
+Instead of:
+
+"Your response has been received."
+
+52.6 Buyer Identity
+
+The agent should naturally use the buyer's configured name.
+
+Example:
+
+"Hi, this is Sadwik. I'm looking to source 500 ergonomic office chairs for our office in Chennai."
+
+The agent should not unnecessarily say:
+
+"I am an AI agent calling on behalf of Sadwik."
+
+However, if the supplier directly asks whether the caller is an AI or automated system, the agent must answer honestly according to the configured disclosure policy and must not falsely claim to be a human.
+
+52.7 Multilingual Conversation
+
+The conversation initially starts in:
+
+English
+Hindi
+
+The supplier may respond in another supported language.
+
+The system must dynamically detect the supplier's language.
+
+Example:
+
+Agent → English
+
+Supplier → Tamil
+
+System
+↓
+Tamil detected
+
+Agent → Tamil
+
+If the supplier switches again:
+
+Tamil
+ ↓
+English
+ ↓
+Hindi
+
+the agent should adapt accordingly.
+
+52.8 Mixed-Language Understanding
+
+The system should support code-switching where the underlying voice stack supports it.
+
+Example:
+
+"Sir 500 pieces ready undi, but Chennai delivery ki 7 days padutundi."
+
+The system should extract:
+
+{
+  "quantity": 500,
+  "availability": true,
+  "delivery_days": 7,
+  "delivery_location": "Chennai"
+}
+
+The negotiation engine remains language-independent.
+
+52.9 Real-Time Language State
+
+Every conversation maintains:
+
+{
+  "current_language": "ta",
+  "language_confidence": 0.96,
+  "mixed_language": true,
+  "language_history": [
+    "en",
+    "ta",
+    "en"
+  ]
+}
+
+Language changes must not reset the negotiation context.
+
+52.10 Procurement Context
+
+The voice agent receives:
+
+{
+  "buyer_name": "Sadwik",
+  "company_name": "Example Technologies",
+  "product": "Ergonomic Office Chair",
+  "quantity": 500,
+  "delivery_location": "Chennai",
+  "target_price": 6500,
+  "maximum_price": 8000,
+  "maximum_rounds": 4,
+  "requirements": [
+    "Ergonomic",
+    "Office use",
+    "Adjustable lumbar support"
+  ]
+}
+52.11 Negotiation Engine
+
+The agent evaluates every supplier response against:
+
+Product
+Quantity
+Target price
+Maximum price
+Market benchmark
+Delivery
+GST
+Shipping
+Warranty
+Payment terms
+MOQ
+Current round
+Previous offers
+52.12 Negotiation Rules
+
+The following rules are mandatory:
+
+ONLY selected suppliers can be called.
+
+NEVER call an unselected supplier.
+
+NEVER exceed the buyer's maximum price.
+
+NEVER reveal the buyer's maximum price.
+
+NEVER reveal internal negotiation strategy.
+
+NEVER fabricate an offer.
+
+NEVER fabricate supplier information.
+
+NEVER fabricate buyer requirements.
+
+NEVER claim an order has been placed.
+
+NEVER make a binding purchase commitment.
+
+NEVER accept a contract on behalf of the buyer.
+
+NEVER negotiate beyond the configured maximum rounds.
+
+ALWAYS record meaningful supplier offers.
+
+ALWAYS preserve negotiation context across language changes.
+
+ALWAYS ask for clarification when an offer is ambiguous.
+
+ALWAYS return the final result to the buyer.
+52.13 Offer Extraction
+
+Natural conversation:
+
+"For 500 pieces, I can give you ₹7,200 each. GST extra and delivery will take around 10 days."
+
+System extracts:
+
+{
+  "quantity": 500,
+  "unit_price": 7200,
+  "currency": "INR",
+  "gst": "extra",
+  "delivery_days": 10,
+  "shipping": null,
+  "warranty": null,
+  "payment_terms": null
+}
+52.14 Negotiation Rounds
+
+Maximum:
+
+4 rounds
+
+Example:
+
+Round 1
+Supplier → ₹7,600
+
+Round 2
+Procura → ₹6,900
+
+Round 3
+Supplier → ₹7,300
+
+Round 4
+Procura → ₹7,100
+
+The negotiation then ends.
+
+52.15 Hard Maximum Price
+
+If:
+
+Maximum authorized price = ₹8,000
+
+Supplier:
+
+"₹8,500 is our best price."
+
+The agent must not accept it.
+
+It may attempt another counteroffer within its remaining negotiation rounds.
+
+If the supplier refuses:
+
+NEGOTIATION_FAILED
+52.16 Market Intelligence
+
+The agent may use market intelligence discovered by Procura.
+
+Example:
+
+Market benchmark:
+₹6,800–₹7,400
+
+Supplier initial:
+₹7,900
+
+The agent can use this information internally to determine an appropriate counteroffer.
+
+It must not reveal confidential internal data to the supplier.
+
+52.17 Commercial Negotiation
+
+The agent should not focus exclusively on unit price.
+
+It should negotiate:
+
+Unit price
+Bulk discount
+MOQ
+Delivery
+Shipping
+GST
+Warranty
+Installation
+Payment terms
+Credit period
+
+Example:
+
+Supplier:
+₹7,200 + ₹50,000 shipping
+
+Procura:
+Calculate effective landed cost
+
+₹7,200 × 500 = ₹36,00,000
+Shipping = ₹50,000
+
+Total = ₹36,50,000
+52.18 Call Transcript
+
+Every call should generate a transcript.
+
+Example:
+
+[00:01]
+Procura:
+Hi, this is Sadwik...
+
+[00:12]
+Supplier:
+Yes sir, we can supply 500 chairs...
+
+[00:28]
+Procura:
+What would be your best bulk price?
+
+[00:35]
+Supplier:
+₹7,600 per chair...
+
+[00:47]
+Procura:
+Okay... since we're taking 500 units,
+is there some room to improve that?
+52.19 Structured Negotiation History
+
+Every round should be stored.
+
+{
+  "round": 1,
+  "supplier_offer": {
+    "unit_price": 7600
+  }
+}
+{
+  "round": 2,
+  "procura_counter": {
+    "unit_price": 6900
+  }
+}
+{
+  "round": 3,
+  "supplier_offer": {
+    "unit_price": 7200
+  }
+}
+52.20 Call Status
+
+Each supplier must have a live status:
+
+NOT_STARTED
+QUEUED
+CALLING
+RINGING
+CONNECTED
+NEGOTIATING
+OFFER_RECEIVED
+NEGOTIATION_COMPLETE
+NO_ANSWER
+BUSY
+FAILED
+DECLINED
+CALLBACK_REQUESTED
+BUYER_REVIEW
+52.21 Live Dashboard
+
+During the call:
+
+┌──────────────────────────────────────┐
+│ 🔴 LIVE NEGOTIATION                  │
+│                                      │
+│ ABC Furniture                        │
+│ Chennai                              │
+│                                      │
+│ 🇮🇳 Tamil detected                   │
+│ Round 2 / 4                          │
+│                                      │
+│ Current Offer                        │
+│ ₹7,300 / unit                        │
+│                                      │
+│ AI Counter                           │
+│ ₹7,000 / unit                        │
+│                                      │
+│ LIVE TRANSCRIPT                      │
+│ ───────────────────────────────────  │
+│ Supplier: ...                        │
+│ Procura: ...                         │
+└──────────────────────────────────────┘
+52.22 Final Offer
+
+After negotiation:
+
+ABC Furniture
+
+Initial:
+₹7,600/unit
+
+Final:
+₹7,100/unit
+
+Quantity:
+500
+
+Delivery:
+10 days
+
+GST:
+Extra
+
+Estimated savings:
+₹2,50,000
+52.23 Multiple Supplier Results
+
+Example:
+
+ABC Furniture
+₹7,100/unit
+500 units
+10-day delivery
+GST extra
+
+XYZ Seating
+₹7,050/unit
+500 units
+14-day delivery
+GST included
+
+ErgoTech
+₹7,250/unit
+500 units
+7-day delivery
+GST included
+
+Procura can calculate:
+
+Best Price
+Best Delivery
+Best Total Cost
+Best Overall Value
+
+But the buyer remains the final decision maker.
+
+52.24 Buyer Approval
+
+Final screen:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       NEGOTIATION COMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEST OVERALL OFFER
+
+XYZ Seating
+
+₹7,050 / unit
+500 units
+14-day delivery
+GST included
+
+Estimated Total:
+₹35,25,000
+
+Estimated Savings:
+₹2,75,000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Review Offer]
+
+[Approve Purchase]
+
+[Reject]
+
+Approve Purchase only proceeds to whatever downstream purchasing workflow Procura implements. The voice agent itself must not treat negotiation completion as purchase authorization.
+
+52.25 Failure Handling
+
+The system must gracefully handle:
+
+No answer
+NO_ANSWER
+Busy
+BUSY
+Invalid number
+INVALID_CONTACT
+Supplier refuses
+DECLINED
+Supplier requests email
+EMAIL_FOLLOWUP_REQUIRED
+Unclear speech
+
+Agent asks:
+
+"Sorry, could you repeat that?"
+
+Unsupported language
+
+The system should gracefully request a supported language or route the interaction to an appropriate fallback.
+
+52.26 Human Escalation
+
+If the supplier asks for something outside the agent's authorization:
+
+"Can you sign the agreement today?"
+
+Agent:
+
+"I can collect the details and offer, but the final agreement needs to be reviewed by the buyer."
+
+Status:
+
+ESCALATE_TO_BUYER
+52.27 Call Recording
+
+Call recording should be configurable.
+
+{
+  "record_calls": true
+}
+
+Where recording is enabled, the system must account for applicable consent and legal requirements.
+
+52.28 Security
+
+Every call must be associated with:
+
+user_id
+procurement_id
+supplier_id
+authorization_id
+negotiation_id
+call_id
+
+This prevents accidental calls across different procurement requests.
+
+52.29 Core API
+Start negotiation
+POST /api/negotiations/start
+{
+  "procurement_id": "proc_123",
+  "supplier_ids": [
+    "sup_001",
+    "sup_004"
+  ]
+}
+Get negotiation
+GET /api/negotiations/:id
+Get transcript
+GET /api/negotiations/:id/transcript
+Get offers
+GET /api/negotiations/:id/offers
+Twilio webhook
+POST /api/webhooks/twilio/voice
+Call status webhook
+POST /api/webhooks/twilio/status
+52.30 Final Acceptance Criteria
+
+The Caller Agent implementation is considered complete only when the following end-to-end flow works:
+
+Supplier selection
+ Top suppliers are displayed.
+ Buyer can select suppliers.
+ Buyer can deselect suppliers.
+ Backend validates selection.
+ Unselected suppliers cannot be called.
+Calling
+ Twilio initiates outbound call.
+ Call status is tracked.
+ Supplier can speak naturally.
+ Agent can respond in real time.
+ Agent can handle interruptions.
+Identity
+ Agent uses buyer's configured name.
+ Agent does not unnecessarily say "calling on behalf of".
+ Agent does not falsely claim to be human.
+Multilingual
+ Conversation can start in English/Hindi.
+ Supplier language is detected.
+ Agent adapts to supported supplier languages.
+ Language switching does not lose negotiation context.
+ Mixed-language speech can be interpreted where supported.
+Negotiation
+ Product requirements are available to the agent.
+ Target price is available internally.
+ Maximum price is enforced.
+ Maximum price is never disclosed.
+ Negotiation rounds are tracked.
+ Maximum rounds are enforced.
+ Price can be negotiated.
+ Delivery can be negotiated.
+ Shipping/GST/payment/warranty can be discussed.
+ No purchase commitment can be made.
+Offer processing
+ Supplier offers are extracted.
+ Unit price is extracted.
+ Quantity is extracted.
+ Delivery is extracted.
+ GST is extracted.
+ Shipping is extracted where available.
+ Total cost can be calculated.
+ Savings can be calculated.
+ Offer history is stored.
+Dashboard
+ Live call status is visible.
+ Current language is visible.
+ Current round is visible.
+ Live transcript is visible.
+ Current offer is visible.
+ Final offers are visible.
+ Suppliers can be compared.
+ Buyer can review final offers.
+ AI does not independently purchase.
+Final Architecture
+                         PROCURA
+                            │
+                            ▼
+                   PROCUREMENT REQUEST
+                            │
+                            ▼
+                    REQUIREMENT PARSER
+                            │
+                            ▼
+                    SUPPLIER DISCOVERY
+                            │
+                            ▼
+                         TOP 5
+                            │
+                            ▼
+                 BUYER SELECTS SUPPLIERS
+                            │
+                            ▼
+                 EXPLICIT AUTHORIZATION
+                            │
+                            ▼
+                 BACKEND VALIDATION
+                            │
+                            ▼
+                 NEGOTIATION QUEUE
+                            │
+                            ▼
+                  NEGOTIATION CONTROLLER
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+       Procurement Context          Negotiation Policy
+              │                           │
+              └─────────────┬─────────────┘
+                            ▼
+                   REAL-TIME VOICE AI
+                            │
+                            ▼
+                       TWILIO
+                            │
+                            ▼
+                    SUPPLIER PHONE
+                            │
+                            ▼
+                   SUPPLIER SPEECH
+                            │
+                            ▼
+                  LANGUAGE DETECTION
+                            │
+                            ▼
+                 SPEECH UNDERSTANDING
+                            │
+                            ▼
+                   NEGOTIATION ENGINE
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+            OFFER EXTRACTION       POLICY CHECK
+                 │                     │
+                 └──────────┬──────────┘
+                            ▼
+                     COUNTEROFFER
+                            │
+                            ▼
+                    NATURAL VOICE
+                            │
+                            ▼
+                       SUPPLIER
+                            │
+                            ▼
+                     FINAL OFFER
+                            │
+                            ▼
+                 STRUCTURED NEGOTIATION
+                            │
+                            ▼
+                    BUYER DASHBOARD
+                            │
+                            ▼
+                   REVIEW & APPROVE
+Non-negotiable Procura rule
+
+The AI discovers suppliers and negotiates intelligently, but the buyer decides who gets contacted and whether anything gets purchased.
+
+53. Demo Scenario
+
+Use:
+
+Product:
+Ergonomic office chairs
+
+Quantity:
+500
+
+Location:
+Chennai
+
+Target:
+₹6,500
+
+Maximum:
+₹8,000
+
+Buyer:
+Sadwik
+
+Buyer selects:
+
+☑ ABC Furniture
+☑ XYZ Seating
+
+Clicks:
+
+🚀 Start Negotiation
+
+Procura:
+
+Calling ABC Furniture...
+
+Agent:
+
+"Hi, this is Sadwik. I'm looking to source 500 ergonomic office chairs for our office in Chennai..."
+
+Supplier responds in Tamil.
+
+System:
+
+🇮🇳 Tamil detected
+
+Agent switches naturally.
+
+Supplier:
+
+₹7,600
+
+AI calculates:
+
+Target: ₹6,500
+Maximum: ₹8,000
+Offer: ₹7,600
+
+Counter: ₹6,900
+
+Supplier:
+
+₹7,200 final.
+
+Procura records:
+
+Initial: ₹7,600
+Final: ₹7,200
+Savings: ₹200 × 500
+       = ₹1,00,000
+
+Then:
+
+Calling XYZ Seating...
+
+At the end:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+       NEGOTIATION COMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ABC Furniture
+₹7,200/unit
+500 units
+10-day delivery
+GST extra
+
+XYZ Seating
+₹7,050/unit
+500 units
+14-day delivery
+GST included
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED: XYZ Seating
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Review Offers]
+
+And Procura stops there.
+
+It does not purchase anything.
+
+The buyer decides.
+
+54. Final System Architecture
+                         BUYER
+                           │
+                           ▼
+                 PROCUREMENT REQUEST
+                           │
+                           ▼
+                  REQUIREMENT PARSER
+                           │
+                           ▼
+                 SUPPLIER DISCOVERY
+                           │
+                           ▼
+                     TOP 5 SUPPLIERS
+                           │
+                           ▼
+                  BUYER SELECTS SUPPLIERS
+                           │
+                           ▼
+                 EXPLICIT AUTHORIZATION
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │ NEGOTIATION QUEUE   │
+                └──────────┬──────────┘
+                           │
+                           ▼
+                    PROCURA CALLER
+                           │
+                    Procurement Context
+                           │
+                    Negotiation Policy
+                           │
+                           ▼
+                    REAL-TIME VOICE AI
+                           │
+                           ▼
+                     TWILIO VOICE
+                           │
+                           ▼
+                    SUPPLIER PHONE
+                           │
+                           ▼
+                Supplier Speech / Response
+                           │
+                           ▼
+                   Language Detection
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+        English/Hindi              Other Language
+             │                           │
+             └─────────────┬─────────────┘
+                           ▼
+                  Speech Understanding
+                           │
+                           ▼
+                 Negotiation Engine
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+             Offer Parser       Policy Engine
+                 │                   │
+                 └─────────┬─────────┘
+                           ▼
+                    Counter Offer
+                           │
+                           ▼
+                    Natural Response
+                           │
+                           ▼
+                       SUPPLIER
+                           │
+                           ▼
+                    FINAL OFFER
+                           │
+                           ▼
+                 STRUCTURED DATABASE
+                           │
+                           ▼
+                  BUYER DASHBOARD
+                           │
+                           ▼
+                  REVIEW & APPROVE
+                           │
+                           ▼
+                    HUMAN DECISION
+55. The One-Line Product Definition
+
+Procura's AI Caller is a buyer-authorized, multilingual, real-time voice procurement agent that contacts only explicitly selected suppliers, negotiates within strict buyer-defined constraints, extracts commercial offers, and returns them to the buyer for final approval

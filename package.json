@@ -1,0 +1,49 @@
+{
+  "name": "procura-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "tsx tests/backend.test.ts && tsx tests/production_flow.test.ts && tsx tests/voice_caller.test.ts && tsx tests/payment_shipment.test.ts && tsx tests/auth_db.test.ts",
+    "worker:mail": "tsx scripts/mailWorker.ts",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
+    "gsap": "^3.15.0",
+    "html2canvas": "^1.4.1",
+    "imapflow": "^1.7.8",
+    "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.468.0",
+    "mailparser": "^3.9.20",
+    "motion": "^13.1.1",
+    "next": "^15.1.4",
+    "nodemailer": "^9.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cheerio": "^0.22.35",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^22",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
+    "shadcn": "^4.19.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2"
+  }
+}

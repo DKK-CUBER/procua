@@ -1,0 +1,4 @@
+import Link from 'next/link';
+type Props={href?:string;compact?:boolean;className?:string};
+/** A provenance mark: a P-shaped procurement route terminating in the red verification point. */
+export default function ProcuraLogo({href='/dashboard',compact=false,className=''}:Props){const mark=<svg className="procura-mark" viewBox="0 0 36 36" role="img" aria-label="Procura"><path d="M8 29V7h11.3c5.4 0 8.7 2.8 8.7 7.2 0 4.3-3.3 7.1-8.7 7.1H13.8" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="square"/><path d="M14 15.3h7.2" fill="none" stroke="currentColor" strokeWidth="3.2"/><circle cx="27.5" cy="26.5" r="3.2" fill="currentColor"/><path d="M17 26.5h7.3" fill="none" stroke="currentColor" strokeWidth="2"/></svg>;return <Link href={href} className={'procura-brand '+className}>{mark}{!compact&&<span>PROCURA<span className="procura-brand-dot">.</span></span>}</Link>}
