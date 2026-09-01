@@ -348,21 +348,33 @@ function Dashboard() {
   const [negotiations, setNegotiations] = useState<NegotiationType[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('procura_user') || sessionStorage.getItem('procura_user');
+        if (storedUser) setCurrentUser(JSON.parse(storedUser));
+      } catch (_) {}
+    }
     procurementService.list().then((res) => { if (res?.data) setRequests(res.data); }).catch(() => {});
     negotiationService.list().then((res) => { if (res?.data) setNegotiations(res.data); }).catch(() => {});
     shipmentService.list().then((res) => { if (res?.data) setShipments(res.data); }).catch(() => {});
     analyticsService.get().then((res) => { if (res?.data) setAnalytics(res.data); }).catch(() => {});
   }, []);
 
+  const isDemoAccount = !currentUser || currentUser.email === 'sadwik@kinetiqstudios.com';
+  const userName = currentUser?.name || 'Sadwik';
+  const userBiz = currentUser?.businessName || currentUser?.business?.name || 'Example Technologies';
+  const isNewWorkspace = !isDemoAccount && requests.length === 0;
+
   return (
     <Shell>
       <Crumb
-        eyebrow="Good afternoon, Sadwik · 01 Sep 2026"
-        title="Procurement is under control."
+        eyebrow={`Good day, ${userName} · ${userBiz}`}
+        title={isNewWorkspace ? "Your procurement workspace is ready." : "Procurement is under control."}
         actions={
-          <Link className="btn primary" href="/procure">
+          <Link className="btn primary flex items-center gap-1.5 font-bold" href="/procure">
             <I.Plus size={15} />
             New procurement
           </Link>
@@ -370,12 +382,12 @@ function Dashboard() {
       />
       <div className="metrics grid gap-0 border border-black md:grid-cols-4">
         {[
-          ['Active procurement', '₹4.82L', `${requests.length || 12} requests in progress`, 'blue'],
-          ['Negotiated savings', '₹68,400', '18.2% above last month', 'green'],
-          ['Active negotiations', String(negotiations.length || 7), '2 need your review', 'yellow'],
-          ['At-risk shipments', String(shipments.filter(s => s.risk === 'high' || s.riskLevel === 'HIGH').length || 1), '1 high priority', 'red']
+          ['Active procurement', isNewWorkspace ? '₹0' : '₹4.82L', isNewWorkspace ? '0 requests in progress' : `${requests.length || 12} requests in progress`, 'blue'],
+          ['Negotiated savings', isNewWorkspace ? '₹0' : '₹68,400', isNewWorkspace ? '0% this month' : '18.2% above last month', 'green'],
+          ['Active negotiations', isNewWorkspace ? '0' : String(negotiations.length || 7), isNewWorkspace ? 'Ready to initiate' : '2 need your review', 'yellow'],
+          ['At-risk shipments', isNewWorkspace ? '0' : String(shipments.filter(s => s.risk === 'high' || s.riskLevel === 'HIGH').length || 1), isNewWorkspace ? 'All logistics normal' : '1 high priority', 'red']
         ].map(([a, b, c, t]) =>
-          a === 'At-risk shipments' ? (
+          a === 'At-risk shipments' && !isNewWorkspace ? (
             <BorderGlow key={a} className="metric metric-glow" accent="#c00000">
               <div className="flex justify-between text-sm muted">
                 <span>{a}</span>
@@ -406,46 +418,69 @@ function Dashboard() {
             </Link>
           </div>
           <div className="mt-4">
-            {[
-              ['Ergonomic office chairs', 'PO-1827', 'Offer comparison', '₹3,70,000'],
-              ['Warehouse shelving', 'REQ-2044', 'Supplier discovery', '₹1,12,500'],
-              ['Industrial labels', 'PO-1819', 'In transit', '₹44,800']
-            ].map((x) => (
-              <Link
-                href="/procure"
-                key={x[1]}
-                className="table-row grid-cols-[1fr_auto_auto] hover:bg-white/[.02]"
-              >
-                <div>
-                  <div className="font-medium">{x[0]}</div>
-                  <div className="mt-1 text-xs muted">{x[1]}</div>
+            {isNewWorkspace ? (
+              <div className="rounded-xl border border-dashed border-[#e5e7eb] p-8 text-center bg-[#f9fafb]">
+                <div className="w-12 h-12 mx-auto rounded-full bg-[#ecfdf5] grid place-items-center text-[#10b981] mb-3">
+                  <I.Sparkles size={24} />
                 </div>
-                <Badge tone={x[2] === 'In transit' ? 'blue' : 'yellow'}>{x[2]}</Badge>
-                <div className="font-medium">{x[3]}</div>
-              </Link>
-            ))}
+                <h3 className="font-bold text-base text-[#111827]">Welcome to {userBiz}!</h3>
+                <p className="text-xs text-[#6b7280] max-w-md mx-auto mt-1">
+                  Your procurement ledger is ready. Start your first procurement request to discover direct manufacturers and initiate AI negotiations.
+                </p>
+                <Link href="/procure" className="btn primary !bg-[#111827] hover:!bg-black !text-white text-xs font-bold mt-4 inline-flex items-center gap-1.5 !py-2.5 !px-5 shadow-sm rounded-xl">
+                  <I.Plus size={15} /> Start First Procurement Request
+                </Link>
+              </div>
+            ) : (
+              [
+                ['Ergonomic office chairs', 'PO-1827', 'Offer comparison', '₹3,70,000'],
+                ['Warehouse shelving', 'REQ-2044', 'Supplier discovery', '₹1,12,500'],
+                ['Industrial labels', 'PO-1819', 'In transit', '₹44,800']
+              ].map((x) => (
+                <Link
+                  href="/procure"
+                  key={x[1]}
+                  className="table-row grid-cols-[1fr_auto_auto] hover:bg-white/[.02]"
+                >
+                  <div>
+                    <div className="font-medium">{x[0]}</div>
+                    <div className="mt-1 text-xs muted">{x[1]}</div>
+                  </div>
+                  <Badge tone={x[2] === 'In transit' ? 'blue' : 'yellow'}>{x[2]}</Badge>
+                  <div className="font-medium">{x[3]}</div>
+                </Link>
+              ))
+            )}
           </div>
         </section>
 
-        <BorderGlow className="p-5" accent="#aa6a00" glowColor="36 70% 36%">
+        <BorderGlow className="p-5" accent={isNewWorkspace ? "#059669" : "#aa6a00"} glowColor={isNewWorkspace ? "142 70% 36%" : "36 70% 36%"}>
           <div className="flex justify-between">
             <h2 className="h2">Shipment risk</h2>
-            <I.AlertTriangle className="text-[#ffc46b]" size={17} />
+            <I.AlertTriangle className={isNewWorkspace ? "text-[#10b981]" : "text-[#ffc46b]"} size={17} />
           </div>
           <div className="mt-5 space-y-5">
-            {[
-              ['PO-1827', 'Warehouse milestone missed', 'High'],
-              ['PO-1812', 'ETA changed by carrier', 'Medium'],
-              ['PO-1819', 'Live tracking unavailable', 'Low']
-            ].map(([a, b, c]) => (
-              <Link href="/shipments/shp-1827" key={a} className="block">
-                <div className="flex justify-between text-sm">
-                  <span>{a}</span>
-                  <Badge tone={c === 'High' ? 'red' : c === 'Medium' ? 'yellow' : 'blue'}>{c}</Badge>
-                </div>
-                <div className="mt-1 text-xs muted">{b}</div>
-              </Link>
-            ))}
+            {isNewWorkspace ? (
+              <div className="text-center py-6">
+                <I.CheckCircle2 className="mx-auto text-[#10b981] mb-2" size={24} />
+                <p className="text-xs font-bold text-[#111827]">Zero shipment risks</p>
+                <p className="text-[11px] text-[#6b7280] mt-1">Multi-carrier tracking will automatically activate upon PO issuance.</p>
+              </div>
+            ) : (
+              [
+                ['PO-1827', 'Warehouse milestone missed', 'High'],
+                ['PO-1812', 'ETA changed by carrier', 'Medium'],
+                ['PO-1819', 'Live tracking unavailable', 'Low']
+              ].map(([a, b, c]) => (
+                <Link href="/shipments/shp-1827" key={a} className="block">
+                  <div className="flex justify-between text-sm">
+                    <span>{a}</span>
+                    <Badge tone={c === 'High' ? 'red' : c === 'Medium' ? 'yellow' : 'blue'}>{c}</Badge>
+                  </div>
+                  <div className="mt-1 text-xs muted">{b}</div>
+                </Link>
+              ))
+            )}
           </div>
         </BorderGlow>
       </div>
@@ -454,37 +489,43 @@ function Dashboard() {
         <section className="panel !rounded-none !border-0 border-r border-black p-5">
           <h2 className="h2">Negotiations in motion</h2>
           <div className="mt-5 space-y-4">
-            {[
-              ['Cobalt Office Systems', '₹740/unit', 'Target achieved'],
-              ['Ernest Furnishings', '₹735/unit', 'Counteroffer received'],
-              ['Sahara Workspace', '—', 'Communication unavailable']
-            ].map(([a, b, c]) => (
-              <Link href="/negotiations/neg-cobalt" className="flex items-center justify-between" key={a}>
-                <div>
-                  <div className="text-sm font-medium">{a}</div>
-                  <div className="mt-1 text-xs muted">{b}</div>
-                </div>
-                <Badge
-                  tone={c === 'Target achieved' ? 'green' : c === 'Communication unavailable' ? 'red' : 'yellow'}
-                >
-                  {c}
-                </Badge>
-              </Link>
-            ))}
+            {isNewWorkspace ? (
+              <p className="text-xs text-[#6b7280] py-4 text-center">
+                No active negotiations. Select suppliers from search to initiate telephone negotiations.
+              </p>
+            ) : (
+              [
+                ['Cobalt Office Systems', '₹740/unit', 'Target achieved'],
+                ['Ernest Furnishings', '₹735/unit', 'Counteroffer received'],
+                ['Sahara Workspace', '—', 'Communication unavailable']
+              ].map(([a, b, c]) => (
+                <Link href="/negotiations/neg-cobalt" className="flex items-center justify-between" key={a}>
+                  <div>
+                    <div className="text-sm font-medium">{a}</div>
+                    <div className="mt-1 text-xs muted">{b}</div>
+                  </div>
+                  <Badge
+                    tone={c === 'Target achieved' ? 'green' : c === 'Communication unavailable' ? 'red' : 'yellow'}
+                  >
+                    {c}
+                  </Badge>
+                </Link>
+              ))
+            )}
           </div>
         </section>
 
         <section className="panel !rounded-none !border-0 p-5">
           <div className="flex justify-between">
             <h2 className="h2">Savings this month</h2>
-            <span className="text-sm text-[#b7f46a]">+18.2%</span>
+            <span className="text-sm text-[#b7f46a]">{isNewWorkspace ? "0.0%" : "+18.2%"}</span>
           </div>
           <div className="mt-8 flex h-28 items-end gap-3">
             {[35, 48, 30, 65, 52, 75, 90, 70, 100, 82, 96, 110].map((h, i) => (
               <div
                 key={i}
                 className="flex-1 rounded-t bg-[#b7f46a]"
-                style={{ height: h + 'px', opacity: 0.45 + i / 24 }}
+                style={{ height: (isNewWorkspace ? 10 : h) + 'px', opacity: 0.45 + i / 24 }}
               />
             ))}
           </div>
@@ -2857,24 +2898,43 @@ function Analytics() {
 function Auth({ signup = false }: { signup?: boolean }) {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: 'Sadwik Kumar',
-    businessName: 'Kinetiq Studios',
-    email: 'sadwik@kinetiqstudios.com',
-    phone: '+91-98840-12345',
-    password: 'Password123!'
+    name: signup ? '' : 'Sadwik Kumar',
+    businessName: signup ? '' : 'Kinetiq Studios',
+    email: signup ? '' : 'sadwik@kinetiqstudios.com',
+    phone: signup ? '' : '+91-98840-12345',
+    password: signup ? '' : 'Password123!'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (signup) {
-        await authService.signup(formData);
+        const res = await authService.signup(formData);
+        if (res?.user && typeof window !== 'undefined') {
+          localStorage.setItem('procura_user', JSON.stringify(res.user));
+          if (res.token) localStorage.setItem('procura_token', res.token);
+        }
         router.push('/onboarding');
       } else {
-        await authService.login({ email: formData.email, password: formData.password });
+        const res = await authService.login({ email: formData.email, password: formData.password });
+        if (res?.user && typeof window !== 'undefined') {
+          localStorage.setItem('procura_user', JSON.stringify(res.user));
+          if (res.token) localStorage.setItem('procura_token', res.token);
+        }
         router.push('/dashboard');
       }
     } catch (err) {
+      if (typeof window !== 'undefined' && formData.name) {
+        localStorage.setItem(
+          'procura_user',
+          JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            businessName: formData.businessName,
+            role: 'OWNER'
+          })
+        );
+      }
       router.push(signup ? '/onboarding' : '/dashboard');
     }
   };
