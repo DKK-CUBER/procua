@@ -136,7 +136,7 @@ export async function startVoiceNegotiation(params: StartNegotiationRequest): Pr
       if (dbSup) {
         supName = dbSup.name;
         supPhone = dbSup.phone || supPhone;
-        supCity = (dbSup as any).city || dbSup.location || supCity;
+        supCity = dbSup.city || (dbSup as any).location || supCity;
       }
     } catch (_) {}
 

@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "next lint",
     "test": "tsx tests/backend.test.ts && tsx tests/production_flow.test.ts && tsx tests/voice_caller.test.ts && tsx tests/payment_shipment.test.ts && tsx tests/auth_db.test.ts",
     "worker:mail": "tsx scripts/mailWorker.ts",
