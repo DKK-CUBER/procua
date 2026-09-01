@@ -13,14 +13,19 @@
 
 ### *The World's First Enterprise-Grade Autonomous Procurement System Equipped with Real-Time Multilingual Voice AI Negotiation, Milestone-Based B2B Escrow, and Dynamic Carrier Tracking.*
 
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Deployment-procua.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://procua.vercel.app/dashboard)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5.25-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.22.0-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![Twilio Telephony](https://img.shields.io/badge/Twilio_Voice-REST_Telephony-F22F46?style=for-the-badge&logo=twilio)](https://www.twilio.com/)
 [![Razorpay B2B](https://img.shields.io/badge/Razorpay-B2B_Payments-0C2340?style=for-the-badge&logo=razorpay)](https://razorpay.com/)
 [![Shiprocket](https://img.shields.io/badge/Shiprocket-Carrier_Logistics-7A1CAC?style=for-the-badge)](https://www.shiprocket.in/)
-[![Ollama Gemma 3](https://img.shields.io/badge/Gemma_3-Local_LLM_Inference-4285F4?style=for-the-badge&logo=google)](https://ollama.ai/)
 [![Tests](https://img.shields.io/badge/Test_Suites-58%2F58_Passed_%28100%25%29-10B981?style=for-the-badge)]()
+
+<br/>
+
+> 🚀 **Live Production Dashboard**: **[https://procua.vercel.app/dashboard](https://procua.vercel.app/dashboard)**  
+> 🌐 **Landing & Showcase**: **[https://procua.vercel.app](https://procua.vercel.app)**
 
 </div>
 
@@ -547,9 +552,11 @@ Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
 ---
 
-## 🏆 Hackathon Credits & Architecture Team
+## 🏆 Hackathon Credits & Live Links
 
 Developed with pride for the **Spiderverse Hackathon 2026** by the Procura Engineering Team.
 
+* **Live Production Dashboard**: [https://procua.vercel.app/dashboard](https://procua.vercel.app/dashboard)
+* **Live Showcase**: [https://procua.vercel.app](https://procua.vercel.app)
 * **Repository**: [https://github.com/DKK-CUBER/procua](https://github.com/DKK-CUBER/procua)
 * **License**: Open-source under the [MIT License](LICENSE).
