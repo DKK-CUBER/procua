@@ -2960,6 +2960,10 @@ function Auth({ signup = false }: { signup?: boolean }) {
 
 function Onboarding() {
   const [step, setStep] = useState(1);
+  const [businessName, setBusinessName] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [category, setCategory] = useState('');
+
   return (
     <div className="app-grid min-h-screen p-5">
       <div className="mx-auto max-w-2xl pt-16">
@@ -3011,7 +3015,20 @@ function Onboarding() {
                 </>
               ) : (
                 <input
+                  key={`onboarding-step-${step}`}
                   className="input"
+                  value={
+                    step === 1
+                      ? businessName
+                      : step === 2
+                      ? industry
+                      : category
+                  }
+                  onChange={(e) => {
+                    if (step === 1) setBusinessName(e.target.value);
+                    else if (step === 2) setIndustry(e.target.value);
+                    else if (step === 3) setCategory(e.target.value);
+                  }}
                   placeholder={
                     step === 1
                       ? 'Kinetiq Studios'
@@ -3019,6 +3036,7 @@ function Onboarding() {
                       ? 'e.g. Hospitality, manufacturing, technology'
                       : 'e.g. Furniture, industrial supplies'
                   }
+                  autoFocus
                 />
               )}
             </div>
