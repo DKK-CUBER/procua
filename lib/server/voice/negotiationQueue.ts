@@ -134,9 +134,10 @@ export async function startVoiceNegotiation(params: StartNegotiationRequest): Pr
         where: { id: supId }
       });
       if (dbSup) {
-        supName = dbSup.name;
-        supPhone = dbSup.phone || supPhone;
-        supCity = dbSup.city || (dbSup as any).location || supCity;
+        const anySup = dbSup as any;
+        supName = anySup.name || supName;
+        supPhone = anySup.phone || supPhone;
+        supCity = anySup.city || anySup.location || supCity;
       }
     } catch (_) {}
 
